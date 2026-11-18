@@ -37,7 +37,7 @@ jobs:
           set "VcpkgRoot=%GITHUB_WORKSPACE%\dep\vcpkg"
           dep\nuget\nuget.exe restore dep\nuget\packages.config -PackagesDirectory packages -ConfigFile NuGet.config -Verbosity quiet
           if errorlevel 1 exit /b %ERRORLEVEL%
-          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
+          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
           set "BUILD_EXIT=%ERRORLEVEL%"
           type build-ci.log
           exit /b %BUILD_EXIT%
