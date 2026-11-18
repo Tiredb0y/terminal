@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-2025
+    runs-on: windows-2022
     timeout-minutes: 240
     steps:
       - name: Check out source
@@ -32,10 +32,12 @@ jobs:
       - name: Restore and build unsigned MSIX
         shell: cmd
         run: |
-          call tools\razzle.cmd
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
           if errorlevel 1 exit /b %ERRORLEVEL%
           set "VcpkgRoot=%GITHUB_WORKSPACE%\dep\vcpkg"
-          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
+          dep\nuget\nuget.exe restore dep\nuget\packages.config -PackagesDirectory packages -ConfigFile NuGet.config -Verbosity quiet
+          if errorlevel 1 exit /b %ERRORLEVEL%
+          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
           set "BUILD_EXIT=%ERRORLEVEL%"
           type build-ci.log
           exit /b %BUILD_EXIT%
