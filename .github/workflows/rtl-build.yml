@@ -24,8 +24,9 @@ jobs:
           $vsInstall = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise'
           if (-not (Test-Path $vsInstall)) { throw 'VS 2026 Enterprise was not found on the runner.' }
           $setup = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe'
-          & $setup modify --installPath $vsInstall --config .vsconfig --quiet --wait --norestart
-          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) { throw "Visual Studio component installation failed with exit code $LASTEXITCODE." }
+          $arguments = "modify --installPath `"$vsInstall`" --config .vsconfig --quiet --norestart"
+          $installer = Start-Process -FilePath $setup -ArgumentList $arguments -Wait -PassThru
+          if ($installer.ExitCode -ne 0 -and $installer.ExitCode -ne 3010) { throw "Visual Studio component installation failed with exit code $($installer.ExitCode)." }
 
       - name: Set up pinned vcpkg
         shell: pwsh
