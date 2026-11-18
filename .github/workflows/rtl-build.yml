@@ -31,17 +31,23 @@ jobs:
 
       - name: Restore and build unsigned MSIX
         shell: cmd
-        run: >-
-          call tools\razzle.cmd &&
-          set VcpkgRoot=%GITHUB_WORKSPACE%\dep\vcpkg &&
-          msbuild.exe OpenConsole.slnx
-          /t:Terminal\CascadiaPackage
-          /p:Configuration=Release
-          /p:Platform=x64
-          /p:PlatformToolset=v143
-          /p:AppxSymbolPackageEnabled=false
-          /m
-          /v:minimal
+        run: |
+          call tools\razzle.cmd
+          if errorlevel 1 exit /b %ERRORLEVEL%
+          set "VcpkgRoot=%GITHUB_WORKSPACE%\dep\vcpkg"
+          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
+          set "BUILD_EXIT=%ERRORLEVEL%"
+          type build-ci.log
+          exit /b %BUILD_EXIT%
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsTerminal-RTL-build-log
+          path: build-ci.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload MSIX
         uses: actions/upload-artifact@v4
