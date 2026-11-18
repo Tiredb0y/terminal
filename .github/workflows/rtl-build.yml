@@ -1,0 +1,52 @@
+name: Build RTL Windows Terminal
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rtl-build
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up pinned vcpkg
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $baseline = '927f62e4b8838bd7e441e9c45103a16ffd75007e'
+          git clone https://github.com/microsoft/vcpkg.git dep/vcpkg
+          if ($LASTEXITCODE -ne 0) { throw 'Could not clone vcpkg.' }
+          git -C dep/vcpkg checkout $baseline
+          if ($LASTEXITCODE -ne 0) { throw 'Could not check out the repository vcpkg baseline.' }
+          & .\dep\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw 'Could not bootstrap vcpkg.' }
+
+      - name: Restore and build unsigned MSIX
+        shell: cmd
+        run: >-
+          call tools\razzle.cmd &&
+          set VcpkgRoot=%GITHUB_WORKSPACE%\dep\vcpkg &&
+          msbuild.exe OpenConsole.slnx
+          /t:Terminal\CascadiaPackage
+          /p:Configuration=Release
+          /p:Platform=x64
+          /p:PlatformToolset=v143
+          /p:AppxSymbolPackageEnabled=false
+          /m
+          /v:minimal
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsTerminal-RTL-unsigned-MSIX
+          path: src/cascadia/CascadiaPackage/AppPackages/**/*.msix
+          if-no-files-found: error
+          retention-days: 7
