@@ -11,11 +11,21 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     timeout-minutes: 240
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Install repository Visual Studio components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vsInstall = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise'
+          if (-not (Test-Path $vsInstall)) { throw 'VS 2026 Enterprise was not found on the runner.' }
+          $setup = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe'
+          & $setup modify --installPath $vsInstall --config .vsconfig --quiet --wait --norestart
+          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) { throw "Visual Studio component installation failed with exit code $LASTEXITCODE." }
 
       - name: Set up pinned vcpkg
         shell: pwsh
@@ -32,12 +42,12 @@ jobs:
       - name: Restore and build unsigned MSIX
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
+          call "C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
           if errorlevel 1 exit /b %ERRORLEVEL%
           set "VcpkgRoot=%GITHUB_WORKSPACE%\dep\vcpkg"
           dep\nuget\nuget.exe restore dep\nuget\packages.config -PackagesDirectory packages -ConfigFile NuGet.config -Verbosity quiet
           if errorlevel 1 exit /b %ERRORLEVEL%
-          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
+          msbuild.exe OpenConsole.slnx /t:Terminal\CascadiaPackage /p:Configuration=Release /p:Platform=x64 /p:AppxSymbolPackageEnabled=false /m /v:minimal > build-ci.log 2>&1
           set "BUILD_EXIT=%ERRORLEVEL%"
           type build-ci.log
           exit /b %BUILD_EXIT%
