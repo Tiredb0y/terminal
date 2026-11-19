@@ -1935,7 +1935,7 @@ WSLENV
 wstr
 wstrings
 wsz
-wtd
+tr
 WTEXT
 WTo
 wtof
